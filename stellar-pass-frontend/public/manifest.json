@@ -1,0 +1,37 @@
+{
+  "name": "Stellar Pass Scanner",
+  "short_name": "SP Scanner",
+  "description": "QR code ticket scanner for Stellar Pass events",
+  "start_url": "/scan",
+  "display": "standalone",
+  "background_color": "#030712",
+  "theme_color": "#4263eb",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/screenshots/scanner.png",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "QR Code Scanner"
+    }
+  ],
+  "categories": ["utilities", "business"],
+  "scope": "/",
+  "lang": "en",
+  "dir": "ltr"
+}

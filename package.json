@@ -1,0 +1,13 @@
+{
+  "name": "stellar-pass",
+  "private": true,
+  "scripts": {
+    "build": "pnpm -r build",
+    "build:shared": "pnpm --filter @stellar-pass/shared build",
+    "dev:backend": "pnpm --filter @stellar-pass/backend dev",
+    "dev:indexer": "pnpm --filter @stellar-pass/indexer dev",
+    "dev:frontend": "pnpm --filter @stellar-pass/frontend dev",
+    "dev": "pnpm run build:shared && pnpm run dev:backend & pnpm run dev:indexer & pnpm run dev:frontend",
+    "clean": "pnpm -r exec rm -rf dist node_modules"
+  }
+}

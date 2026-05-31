@@ -1,0 +1,106 @@
+version: "3.9"
+
+services:
+  # --- PostgreSQL ---
+  postgres:
+    image: postgres:16-alpine
+    container_name: stellar-pass-postgres
+    environment:
+      POSTGRES_DB: stellar_pass
+      POSTGRES_USER: stellar_pass
+      POSTGRES_PASSWORD: stellar_pass_dev
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./stellar-pass-backend/src/db/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U stellar_pass"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # --- Redis ---
+  redis:
+    image: redis:7-alpine
+    container_name: stellar-pass-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # --- Backend API ---
+  backend:
+    build:
+      context: ./stellar-pass-backend
+      dockerfile: docker/Dockerfile
+    container_name: stellar-pass-backend
+    ports:
+      - "3001:3001"
+    environment:
+      PORT: 3001
+      DATABASE_URL: postgresql://stellar_pass:stellar_pass_dev@postgres:5432/stellar_pass
+      REDIS_URL: redis://redis:6379
+      STELLAR_NETWORK: testnet
+      JWT_SECRET: dev-secret-change-in-production
+      STELLAR_PLATFORM_SECRET_KEY: ${STELLAR_PLATFORM_SECRET_KEY:-}
+      HORIZON_URL: https://horizon-testnet.stellar.org
+      SOROBAN_RPC_URL: https://soroban-testnet.stellar.org
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./stellar-pass-backend/src:/app/src
+
+  # --- Indexer ---
+  indexer:
+    build:
+      context: ./stellar-pass-indexer
+      dockerfile: docker/Dockerfile
+    container_name: stellar-pass-indexer
+    ports:
+      - "3002:3002"
+    environment:
+      DATABASE_URL: postgresql://stellar_pass:stellar_pass_dev@postgres:5432/stellar_pass
+      REDIS_URL: redis://redis:6379
+      STELLAR_NETWORK: testnet
+      HORIZON_URL: https://horizon-testnet.stellar.org
+      SOROBAN_RPC_URL: https://soroban-testnet.stellar.org
+      POLL_INTERVAL_MS: 5000
+      LOG_LEVEL: info
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./stellar-pass-indexer/src:/app/src
+
+  # --- Frontend ---
+  frontend:
+    build:
+      context: ./stellar-pass-frontend
+    container_name: stellar-pass-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:3001
+      NEXT_PUBLIC_STELLAR_NETWORK: testnet
+      NEXT_PUBLIC_HORIZON_URL: https://horizon-testnet.stellar.org
+    depends_on:
+      - backend
+    volumes:
+      - ./stellar-pass-frontend/app:/app/app
+      - ./stellar-pass-frontend/components:/app/components
+      - ./stellar-pass-frontend/lib:/app/lib
+
+volumes:
+  postgres_data:
+  redis_data:
