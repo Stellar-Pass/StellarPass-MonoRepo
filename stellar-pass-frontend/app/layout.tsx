@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, JetBrains Mono } from "next/font/google";
+import { Inter, JetBrains_Mono } from "next/font/google";
 import { cn } from "@/lib/utils";
 import "@/styles/globals.css";
 
@@ -8,7 +8,7 @@ const inter = Inter({
   variable: "--font-sans",
 });
 
-const jetbrainsMono = JetBrains Mono({
+const jetbrainsMono = JetBrains_Mono({
   subsets: ["latin"],
   variable: "--font-mono",
 });

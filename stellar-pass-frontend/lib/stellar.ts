@@ -102,8 +102,8 @@ export async function getAccountBalances(publicKey: string) {
     const account = await getAccount(publicKey);
     return account.balances.map((balance) => ({
       assetType: balance.asset_type,
-      assetCode: balance.asset_code,
-      assetIssuer: balance.asset_issuer,
+      assetCode: "asset_code" in balance ? balance.asset_code : "XLM",
+      assetIssuer: "asset_issuer" in balance ? balance.asset_issuer : "",
       balance: balance.balance,
     }));
   } catch {

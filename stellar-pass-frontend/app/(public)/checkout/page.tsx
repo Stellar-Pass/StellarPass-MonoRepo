@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { WalletConnect } from "@/components/attendee/WalletConnect";
 import { PaymentConfirmation } from "@/components/attendee/PaymentConfirmation";
@@ -37,6 +37,18 @@ const mockCheckout = {
 type CheckoutStep = "connect" | "confirm" | "processing" | "success" | "error";
 
 export default function CheckoutPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900/50 py-12 flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-stellar-500" />
+      </div>
+    }>
+      <CheckoutContent />
+    </Suspense>
+  );
+}
+
+function CheckoutContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { connected, publicKey } = useWallet();

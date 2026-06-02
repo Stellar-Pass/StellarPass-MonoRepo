@@ -9,6 +9,50 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
+        border: "hsl(var(--border))",
+        input: "hsl(var(--input))",
+        ring: "hsl(var(--ring))",
+        background: "hsl(var(--background))",
+        foreground: "hsl(var(--foreground))",
+        primary: {
+          DEFAULT: "hsl(var(--primary))",
+          foreground: "hsl(var(--primary-foreground))",
+        },
+        secondary: {
+          DEFAULT: "hsl(var(--secondary))",
+          foreground: "hsl(var(--secondary-foreground))",
+        },
+        destructive: {
+          DEFAULT: "hsl(var(--destructive))",
+          foreground: "hsl(var(--destructive-foreground))",
+        },
+        muted: {
+          DEFAULT: "hsl(var(--muted))",
+          foreground: "hsl(var(--muted-foreground))",
+        },
+        accent: {
+          DEFAULT: "hsl(var(--accent))",
+          foreground: "hsl(var(--accent-foreground))",
+          50: "#f3f0ff",
+          100: "#e5dbff",
+          200: "#d0bfff",
+          300: "#b197fc",
+          400: "#9775fa",
+          500: "#845ef7",
+          600: "#7950f2",
+          700: "#7048e8",
+          800: "#6741d9",
+          900: "#5f3dc4",
+          950: "#4c2889",
+        },
+        popover: {
+          DEFAULT: "hsl(var(--popover))",
+          foreground: "hsl(var(--popover-foreground))",
+        },
+        card: {
+          DEFAULT: "hsl(var(--card))",
+          foreground: "hsl(var(--card-foreground))",
+        },
         stellar: {
           50: "#f0f4ff",
           100: "#dbe4ff",
@@ -21,19 +65,6 @@ const config: Config = {
           800: "#3b5bdb",
           900: "#364fc7",
           950: "#1e3a8a",
-        },
-        accent: {
-          50: "#f3f0ff",
-          100: "#e5dbff",
-          200: "#d0bfff",
-          300: "#b197fc",
-          400: "#9775fa",
-          500: "#845ef7",
-          600: "#7950f2",
-          700: "#7048e8",
-          800: "#6741d9",
-          900: "#5f3dc4",
-          950: "#4c2889",
         },
         success: {
           50: "#ebfbee",

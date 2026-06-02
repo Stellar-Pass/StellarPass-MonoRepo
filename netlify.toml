@@ -1,0 +1,9 @@
+[build]
+  command = "corepack enable && pnpm install --no-frozen-lockfile && cd stellar-pass-frontend && pnpm run build"
+  publish = "stellar-pass-frontend/.next"
+
+[build.environment]
+  NODE_VERSION = "20"
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"

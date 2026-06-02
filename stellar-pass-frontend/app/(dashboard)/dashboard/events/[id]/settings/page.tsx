@@ -66,6 +66,11 @@ export default function EventSettingsPage() {
         url,
         events,
         active: true,
+        lastDelivery: {
+          status: 0,
+          timestamp: new Date().toISOString(),
+          success: false,
+        },
         createdAt: new Date().toISOString(),
       },
     ]);

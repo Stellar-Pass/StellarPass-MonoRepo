@@ -2,3 +2,4 @@ packages:
   - 'stellar-pass-shared'
   - 'stellar-pass-backend'
   - 'stellar-pass-indexer'
+  - 'stellar-pass-frontend'
