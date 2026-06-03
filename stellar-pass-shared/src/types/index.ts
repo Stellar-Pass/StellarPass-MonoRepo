@@ -330,6 +330,31 @@ export interface QRPayload {
   nonce: string; // random UUID
 }
 
+// --- Query Types ---
+
+export interface PaginationParams {
+  page?: number;
+  limit?: number;
+}
+
+export interface EventQueryParams extends PaginationParams {
+  status?: EventStatus;
+  organizer_id?: string;
+  search?: string;
+}
+
+export interface TicketQueryParams extends PaginationParams {
+  event_id?: string;
+  status?: TicketStatus;
+  owner_wallet?: string;
+}
+
+export interface AnalyticsQueryParams {
+  event_id: string;
+  date_from?: string;
+  date_to?: string;
+}
+
 // --- Webhook HTTP payload (sent to organizer's URL) ---
 
 export interface WebhookPayload {
