@@ -1,4 +1,16 @@
 import { API_URL } from "./constants";
+import type {
+  CreateEventRequest,
+  UpdateEventRequest,
+  PurchaseTicketRequest,
+  PaginatedResponse,
+  Event,
+  Ticket,
+  POAPBadge,
+  AnalyticsResponse,
+  Webhook,
+  Organizer,
+} from "@stellar-pass/shared";
 
 const API_PREFIX = "/api/v1";
 
@@ -61,21 +73,21 @@ class APIClient {
 
   // --- Auth ---
   async getAuthChallenge(account: string) {
-    return this.request(`${API_PREFIX}/auth/challenge`, {
+    return this.request<{ transaction: string }>(`${API_PREFIX}/auth/challenge`, {
       method: "POST",
       body: { account },
     });
   }
 
   async verifyAuth(signedTransaction: string) {
-    return this.request(`${API_PREFIX}/auth/token`, {
+    return this.request<{ token: string; account: string }>(`${API_PREFIX}/auth/token`, {
       method: "POST",
       body: { transaction: signedTransaction },
     });
   }
 
   async getMe(token: string) {
-    return this.request(`${API_PREFIX}/auth/me`, { token });
+    return this.request<Organizer>(`${API_PREFIX}/auth/me`, { token });
   }
 
   // --- Events ---
@@ -85,23 +97,23 @@ class APIClient {
     if (params?.limit) searchParams.set("limit", String(params.limit));
     if (params?.status) searchParams.set("status", params.status);
     const qs = searchParams.toString();
-    return this.request(`${API_PREFIX}/events${qs ? `?${qs}` : ""}`, { token });
+    return this.request<PaginatedResponse<Event>>(`${API_PREFIX}/events${qs ? `?${qs}` : ""}`, { token });
   }
 
   async getEvent(id: string) {
-    return this.request(`${API_PREFIX}/events/${id}`);
+    return this.request<Event & { tiers: unknown[] }>(`${API_PREFIX}/events/${id}`);
   }
 
-  async createEvent(data: Record<string, unknown>, token: string) {
-    return this.request(`${API_PREFIX}/events`, {
+  async createEvent(data: CreateEventRequest, token: string) {
+    return this.request<{ event_id: string; slug: string }>(`${API_PREFIX}/events`, {
       method: "POST",
       body: data,
       token,
     });
   }
 
-  async updateEvent(id: string, data: Record<string, unknown>, token: string) {
-    return this.request(`${API_PREFIX}/events/${id}`, {
+  async updateEvent(id: string, data: UpdateEventRequest, token: string) {
+    return this.request<Event>(`${API_PREFIX}/events/${id}`, {
       method: "PATCH",
       body: data,
       token,
@@ -109,19 +121,19 @@ class APIClient {
   }
 
   // --- Tickets ---
-  async purchaseTicket(data: { event_id: string; tier_id: string; buyer_wallet: string; payment_asset: string }) {
-    return this.request(`${API_PREFIX}/tickets/purchase`, {
-      method: "POST",
-      body: data,
-    });
+  async purchaseTicket(data: PurchaseTicketRequest) {
+    return this.request<{ session_id: string; muxed_account: string; amount: string; asset: string; expires_at: string }>(
+      `${API_PREFIX}/tickets/purchase`,
+      { method: "POST", body: data },
+    );
   }
 
   async getTicket(ticketId: string, token?: string) {
-    return this.request(`${API_PREFIX}/tickets/${ticketId}`, { token });
+    return this.request<Ticket & { qr_payload: string }>(`${API_PREFIX}/tickets/${ticketId}`, { token });
   }
 
   async getMyTickets(token: string) {
-    return this.request(`${API_PREFIX}/tickets/my`, { token });
+    return this.request<Ticket[]>(`${API_PREFIX}/tickets/my`, { token });
   }
 
   // --- Check-in ---
@@ -139,25 +151,25 @@ class APIClient {
 
   // --- POAPs ---
   async getMyPOAPs(token: string) {
-    return this.request(`${API_PREFIX}/poaps/my`, { token });
+    return this.request<POAPBadge[]>(`${API_PREFIX}/poaps/my`, { token });
   }
 
   async getPOAP(poapId: string) {
-    return this.request(`${API_PREFIX}/poaps/${poapId}`);
+    return this.request<POAPBadge>(`${API_PREFIX}/poaps/${poapId}`);
   }
 
   // --- Analytics ---
   async getEventAnalytics(eventId: string, token: string) {
-    return this.request(`${API_PREFIX}/analytics/${eventId}`, { token });
+    return this.request<AnalyticsResponse>(`${API_PREFIX}/analytics/${eventId}`, { token });
   }
 
   // --- Webhooks ---
   async getWebhooks(token: string) {
-    return this.request(`${API_PREFIX}/webhooks`, { token });
+    return this.request<Webhook[]>(`${API_PREFIX}/webhooks`, { token });
   }
 
   async createWebhook(data: { url: string; events: string[] }, token: string) {
-    return this.request(`${API_PREFIX}/webhooks`, {
+    return this.request<Webhook>(`${API_PREFIX}/webhooks`, {
       method: "POST",
       body: data,
       token,
@@ -173,11 +185,11 @@ class APIClient {
 
   // --- Organizer ---
   async getOrganizerProfile(token: string) {
-    return this.request(`${API_PREFIX}/organizer/me`, { token });
+    return this.request<Organizer>(`${API_PREFIX}/organizer/me`, { token });
   }
 
   async updateOrganizerProfile(data: Record<string, unknown>, token: string) {
-    return this.request(`${API_PREFIX}/organizer/me`, {
+    return this.request<Organizer>(`${API_PREFIX}/organizer/me`, {
       method: "PATCH",
       body: data,
       token,
