@@ -1,5 +1,7 @@
 import { API_URL } from "./constants";
 
+const API_PREFIX = "/api/v1";
+
 interface APIResponse<T = unknown> {
   data?: T;
   error?: string;
@@ -57,141 +59,134 @@ class APIClient {
     }
   }
 
-  // Events
-  async getEvents(token?: string) {
-    return this.request("/api/events", { token });
-  }
-
-  async getEvent(id: string) {
-    return this.request(`/api/events/${id}`);
-  }
-
-  async getEventBySlug(slug: string) {
-    return this.request(`/api/events/slug/${slug}`);
-  }
-
-  async createEvent(data: CreateEventData, token: string) {
-    return this.request("/api/events", { method: "POST", body: data, token });
-  }
-
-  async updateEvent(id: string, data: Partial<CreateEventData>, token: string) {
-    return this.request(`/api/events/${id}`, { method: "PATCH", body: data, token });
-  }
-
-  async deleteEvent(id: string, token: string) {
-    return this.request(`/api/events/${id}`, { method: "DELETE", token });
-  }
-
-  // Tickets
-  async getEventTickets(eventId: string, token: string) {
-    return this.request(`/api/events/${eventId}/tickets`, { token });
-  }
-
-  async purchaseTicket(eventId: string, tierId: string, walletAddress: string) {
-    return this.request(`/api/events/${eventId}/tickets/purchase`, {
+  // --- Auth ---
+  async getAuthChallenge(account: string) {
+    return this.request(`${API_PREFIX}/auth/challenge`, {
       method: "POST",
-      body: { tierId, walletAddress },
+      body: { account },
     });
   }
 
-  async getTicket(ticketId: string) {
-    return this.request(`/api/tickets/${ticketId}`);
-  }
-
-  async getMyTickets(walletAddress: string) {
-    return this.request(`/api/tickets/wallet/${walletAddress}`);
-  }
-
-  async checkInTicket(ticketId: string, token: string) {
-    return this.request(`/api/tickets/${ticketId}/check-in`, { method: "POST", token });
-  }
-
-  async transferTicket(ticketId: string, toAddress: string, token: string) {
-    return this.request(`/api/tickets/${ticketId}/transfer`, {
+  async verifyAuth(signedTransaction: string) {
+    return this.request(`${API_PREFIX}/auth/token`, {
       method: "POST",
-      body: { toAddress },
+      body: { transaction: signedTransaction },
+    });
+  }
+
+  async getMe(token: string) {
+    return this.request(`${API_PREFIX}/auth/me`, { token });
+  }
+
+  // --- Events ---
+  async getEvents(params?: { page?: number; limit?: number; status?: string }, token?: string) {
+    const searchParams = new URLSearchParams();
+    if (params?.page) searchParams.set("page", String(params.page));
+    if (params?.limit) searchParams.set("limit", String(params.limit));
+    if (params?.status) searchParams.set("status", params.status);
+    const qs = searchParams.toString();
+    return this.request(`${API_PREFIX}/events${qs ? `?${qs}` : ""}`, { token });
+  }
+
+  async getEvent(id: string) {
+    return this.request(`${API_PREFIX}/events/${id}`);
+  }
+
+  async createEvent(data: Record<string, unknown>, token: string) {
+    return this.request(`${API_PREFIX}/events`, {
+      method: "POST",
+      body: data,
       token,
     });
   }
 
-  // POAPs
-  async getEventPOAPs(eventId: string, token: string) {
-    return this.request(`/api/events/${eventId}/poaps`, { token });
-  }
-
-  async claimPOAP(poapId: string, walletAddress: string) {
-    return this.request(`/api/poaps/${poapId}/claim`, {
-      method: "POST",
-      body: { walletAddress },
+  async updateEvent(id: string, data: Record<string, unknown>, token: string) {
+    return this.request(`${API_PREFIX}/events/${id}`, {
+      method: "PATCH",
+      body: data,
+      token,
     });
   }
 
-  async getMyPOAPs(walletAddress: string) {
-    return this.request(`/api/poaps/wallet/${walletAddress}`);
+  // --- Tickets ---
+  async purchaseTicket(data: { event_id: string; tier_id: string; buyer_wallet: string; payment_asset: string }) {
+    return this.request(`${API_PREFIX}/tickets/purchase`, {
+      method: "POST",
+      body: data,
+    });
   }
 
-  // Attendees
-  async getAttendees(eventId: string, token: string, page: number = 1) {
-    return this.request(`/api/events/${eventId}/attendees?page=${page}`, { token });
+  async getTicket(ticketId: string, token?: string) {
+    return this.request(`${API_PREFIX}/tickets/${ticketId}`, { token });
   }
 
-  // Analytics
+  async getMyTickets(token: string) {
+    return this.request(`${API_PREFIX}/tickets/my`, { token });
+  }
+
+  // --- Check-in ---
+  async verifyCheckIn(qrPayload: string, organizerWallet: string, token: string) {
+    return this.request(`${API_PREFIX}/check-in/verify`, {
+      method: "POST",
+      body: { qr_payload: qrPayload, organizer_wallet: organizerWallet },
+      token,
+    });
+  }
+
+  async getCheckInStatus(eventId: string, token: string) {
+    return this.request(`${API_PREFIX}/check-in/status?event_id=${eventId}`, { token });
+  }
+
+  // --- POAPs ---
+  async getMyPOAPs(token: string) {
+    return this.request(`${API_PREFIX}/poaps/my`, { token });
+  }
+
+  async getPOAP(poapId: string) {
+    return this.request(`${API_PREFIX}/poaps/${poapId}`);
+  }
+
+  // --- Analytics ---
   async getEventAnalytics(eventId: string, token: string) {
-    return this.request(`/api/events/${eventId}/analytics`, { token });
+    return this.request(`${API_PREFIX}/analytics/${eventId}`, { token });
   }
 
-  // Webhooks
-  async getWebhooks(eventId: string, token: string) {
-    return this.request(`/api/events/${eventId}/webhooks`, { token });
+  // --- Webhooks ---
+  async getWebhooks(token: string) {
+    return this.request(`${API_PREFIX}/webhooks`, { token });
   }
 
-  async createWebhook(eventId: string, data: { url: string; events: string[] }, token: string) {
-    return this.request(`/api/events/${eventId}/webhooks`, { method: "POST", body: data, token });
+  async createWebhook(data: { url: string; events: string[] }, token: string) {
+    return this.request(`${API_PREFIX}/webhooks`, {
+      method: "POST",
+      body: data,
+      token,
+    });
   }
 
-  async deleteWebhook(eventId: string, webhookId: string, token: string) {
-    return this.request(`/api/events/${eventId}/webhooks/${webhookId}`, { method: "DELETE", token });
+  async deleteWebhook(webhookId: string, token: string) {
+    return this.request(`${API_PREFIX}/webhooks/${webhookId}`, {
+      method: "DELETE",
+      token,
+    });
   }
 
-  // Auth
-  async getAuthChallenge(publicKey: string) {
-    return this.request("/api/auth/challenge", { method: "POST", body: { publicKey } });
+  // --- Organizer ---
+  async getOrganizerProfile(token: string) {
+    return this.request(`${API_PREFIX}/organizer/me`, { token });
   }
 
-  async verifyAuth(signedTransaction: string) {
-    return this.request("/api/auth/verify", { method: "POST", body: { signedTransaction } });
+  async updateOrganizerProfile(data: Record<string, unknown>, token: string) {
+    return this.request(`${API_PREFIX}/organizer/me`, {
+      method: "PATCH",
+      body: data,
+      token,
+    });
   }
 
-  // Profile
-  async getProfile(walletAddress: string) {
-    return this.request(`/api/profile/${walletAddress}`);
+  async getOrganizerPayouts(token: string) {
+    return this.request(`${API_PREFIX}/organizer/payouts`, { token });
   }
-
-  async updateProfile(data: Record<string, unknown>, token: string) {
-    return this.request("/api/profile", { method: "PATCH", body: data, token });
-  }
-}
-
-export interface CreateEventData {
-  name: string;
-  description: string;
-  date: string;
-  endDate?: string;
-  venue: string;
-  location?: string;
-  imageUrl?: string;
-  tiers: {
-    name: string;
-    price: string;
-    supply: number;
-    description?: string;
-    transferable?: boolean;
-  }[];
-  poap?: {
-    enabled: boolean;
-    badgeUrl?: string;
-    claimDeadline?: string;
-  };
 }
 
 export const api = new APIClient(API_URL);
