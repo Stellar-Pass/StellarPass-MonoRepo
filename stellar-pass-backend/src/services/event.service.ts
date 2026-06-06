@@ -3,41 +3,8 @@ import redis from '../db/redis';
 import { generateSlug } from '../utils/slug';
 import { generateKeypair } from '../utils/crypto';
 import { NotFoundError, ForbiddenError, ValidationError, ConflictError } from '../middleware/error-handler';
-import { z } from 'zod';
-
-// -- Zod schemas for validation ---
-
-export const createEventSchema = z.object({
-  name: z.string().min(1).max(200),
-  description: z.string().max(5000).optional(),
-  date_start: z.string().datetime(),
-  date_end: z.string().datetime(),
-  venue: z.object({
-    name: z.string().max(200),
-    address: z.string().max(500),
-    lat: z.number().min(-90).max(90).optional(),
-    lng: z.number().min(-180).max(180).optional(),
-  }).optional(),
-  ticket_tiers: z.array(z.object({
-    name: z.string().min(1).max(100),
-    description: z.string().max(1000).optional(),
-    price: z.number().min(0),
-    currency: z.enum(['USDC', 'XLM', 'EURC']).default('USDC'),
-    supply: z.number().int().min(1).max(100000),
-    transferable: z.boolean().default(true),
-    resale_price_cap: z.number().positive().optional(),
-  })).min(1).max(10),
-  poap_enabled: z.boolean().default(false),
-  poap_badge_url: z.string().url().optional(),
-  webhook_url: z.string().url().optional(),
-});
-
-export const updateEventSchema = z.object({
-  name: z.string().min(1).max(200).optional(),
-  description: z.string().max(5000).optional(),
-  status: z.enum(['draft', 'on_sale', 'sold_out', 'cancelled', 'past']).optional(),
-  image_url: z.string().url().optional(),
-});
+import { createEventSchema, updateEventSchema } from '@stellar-pass/shared/validation';
+import type { z } from 'zod';
 
 export type CreateEventInput = z.infer<typeof createEventSchema>;
 export type UpdateEventInput = z.infer<typeof updateEventSchema>;
