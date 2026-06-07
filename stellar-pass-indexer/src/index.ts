@@ -199,6 +199,37 @@ function startHealthServer(): void {
       return;
     }
 
+    // Metrics endpoint (Prometheus-compatible format)
+    if (req.url === '/metrics' && req.method === 'GET') {
+      const lines = [
+        `# HELP indexer_uptime_seconds Time since indexer started`,
+        `# TYPE indexer_uptime_seconds gauge`,
+        `indexer_uptime_seconds ${Math.floor((Date.now() - metrics.startedAt) / 1000)}`,
+        `# HELP indexer_events_processed_total Total events processed`,
+        `# TYPE indexer_events_processed_total counter`,
+        `indexer_events_processed_total ${metrics.eventsProcessed}`,
+        `# HELP indexer_payments_processed_total Total payments processed`,
+        `# TYPE indexer_payments_processed_total counter`,
+        `indexer_payments_processed_total ${metrics.paymentsProcessed}`,
+        `# HELP indexer_webhooks_delivered_total Total webhooks delivered`,
+        `# TYPE indexer_webhooks_delivered_total counter`,
+        `indexer_webhooks_delivered_total ${metrics.webhooksDelivered}`,
+        `# HELP indexer_errors_total Total errors encountered`,
+        `# TYPE indexer_errors_total counter`,
+        `indexer_errors_total ${metrics.errors}`,
+        `# HELP indexer_active_streams Current active payment streams`,
+        `# TYPE indexer_active_streams gauge`,
+        `indexer_active_streams ${metrics.activeStreams}`,
+        `# HELP indexer_last_processed_ledger Last processed ledger number`,
+        `# TYPE indexer_last_processed_ledger gauge`,
+        `indexer_last_processed_ledger ${metrics.lastProcessedLedger}`,
+      ];
+
+      res.writeHead(200, { 'Content-Type': 'text/plain' });
+      res.end(lines.join('\n') + '\n');
+      return;
+    }
+
     res.writeHead(404);
     res.end('Not found');
   });
