@@ -1,3 +1,13 @@
+//! # Stellar Pass Escrow Contract
+//!
+//! Secondary ticket marketplace with automatic royalty splitting
+//! and organizer-enforced price caps.
+//!
+//! ## Flow
+//! Seller lists ticket → held in escrow
+//! Buyer purchases → payment split (royalty + seller proceeds)
+//! Seller cancels → ticket returned
+
 #![no_std]
 
 use soroban_sdk::{contract, contractimpl, contracttype, Address, Bytes, Env, Vec};
@@ -6,7 +16,7 @@ use soroban_sdk::{contract, contractimpl, contracttype, Address, Bytes, Env, Vec
 // Cross-contract interfaces
 // ---------------------------------------------------------------------------
 
-/// Minimal interface for the Stellar Pass Ticket contract (for cross-contract calls).
+/// Minimal interface for the Stellar Pass Ticket contract.
 #[soroban_sdk::contractclient(name = "TicketClient")]
 pub trait TicketTrait {
     fn transfer(env: Env, from: Address, to: Address, token_id: u128);
@@ -14,13 +24,13 @@ pub trait TicketTrait {
     fn owner_of(env: Env, token_id: u128) -> Address;
 }
 
-/// Minimal interface for Soroban token contracts (SAC / custom tokens).
+/// Minimal interface for Soroban token contracts.
 #[soroban_sdk::contractclient(name = "TokenClient")]
 pub trait TokenTrait {
     fn transfer(env: Env, from: Address, to: Address, amount: i128);
 }
 
-// A lightweight stub of TicketMetadata — only the fields the escrow needs.
+/// Lightweight stub of TicketMetadata for escrow validation.
 #[derive(Clone, Debug, Eq, PartialEq)]
 #[contracttype]
 pub struct TicketMetadataStub {
@@ -34,6 +44,7 @@ pub struct TicketMetadataStub {
     pub status: TicketStatusStub,
 }
 
+/// Ticket status for cross-contract verification.
 #[derive(Clone, Debug, Eq, PartialEq)]
 #[contracttype]
 pub enum TicketStatusStub {
@@ -47,6 +58,7 @@ pub enum TicketStatusStub {
 // Escrow data types
 // ---------------------------------------------------------------------------
 
+/// Status of a resale listing.
 #[derive(Clone, Debug, Eq, PartialEq)]
 #[contracttype]
 pub enum ListingStatus {
@@ -55,6 +67,7 @@ pub enum ListingStatus {
     Cancelled,
 }
 
+/// A ticket resale listing in the escrow marketplace.
 #[derive(Clone, Debug, Eq, PartialEq)]
 #[contracttype]
 pub struct Listing {
@@ -64,7 +77,9 @@ pub struct Listing {
     pub ticket_id: u128,
     pub ask_price: i128,
     pub currency: Address,
+    /// Royalty in basis points (e.g., 500 = 5%).
     pub royalty_bps: u32,
+    /// Maximum resale price allowed by organizer. 0 = no cap.
     pub price_cap: i128,
     pub status: ListingStatus,
     pub event_id: Bytes,
