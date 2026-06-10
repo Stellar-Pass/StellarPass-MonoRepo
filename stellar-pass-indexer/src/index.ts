@@ -23,6 +23,17 @@ const log = createChildLogger('main');
 let isShuttingDown = false;
 let healthServer: http.Server | null = null;
 
+// Metrics state
+const metrics = {
+  startedAt: Date.now(),
+  eventsProcessed: 0,
+  paymentsProcessed: 0,
+  webhooksDelivered: 0,
+  errors: 0,
+  lastProcessedLedger: 0,
+  activeStreams: 0,
+};
+
 async function main(): Promise<void> {
   log.info('=== Stellar Pass Indexer starting ===');
   log.info({ network: config.stellar.network, horizonUrl: config.stellar.horizonUrl }, 'Configuration loaded');
@@ -85,7 +96,14 @@ async function main(): Promise<void> {
   // Health check: log stats every 5 minutes
   cron.schedule('0 */5 * * * *', () => {
     if (isShuttingDown) return;
-    log.info('Indexer heartbeat — running');
+    log.info({
+      uptime: Math.floor((Date.now() - metrics.startedAt) / 1000),
+      eventsProcessed: metrics.eventsProcessed,
+      paymentsProcessed: metrics.paymentsProcessed,
+      webhooksDelivered: metrics.webhooksDelivered,
+      errors: metrics.errors,
+      activeStreams: metrics.activeStreams,
+    }, 'Indexer heartbeat');
   });
 
   // ---- 6. Start health check HTTP server ----
