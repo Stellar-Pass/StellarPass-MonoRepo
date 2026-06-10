@@ -18,30 +18,30 @@ export type WalletType = (typeof WALLET_OPTIONS)[number]["id"];
 export const TICKET_STATUS = {
   ACTIVE: "active",
   USED: "used",
-  EXPIRED: "expired",
-  TRANSFERRED: "transferred",
-  CANCELLED: "cancelled",
+  FROZEN: "frozen",
+  CLAWED_BACK: "clawed_back",
 } as const;
 
 export type TicketStatus = (typeof TICKET_STATUS)[keyof typeof TICKET_STATUS];
 
 export const EVENT_STATUS = {
   DRAFT: "draft",
-  PUBLISHED: "published",
-  LIVE: "live",
-  ENDED: "ended",
+  ON_SALE: "on_sale",
+  SOLD_OUT: "sold_out",
   CANCELLED: "cancelled",
+  PAST: "past",
 } as const;
 
 export type EventStatus = (typeof EVENT_STATUS)[keyof typeof EVENT_STATUS];
 
-export const POAP_STATUS = {
-  UNCLAIMED: "unclaimed",
-  CLAIMED: "claimed",
+export const PURCHASE_SESSION_STATUS = {
+  PENDING: "pending",
+  CONFIRMED: "confirmed",
   EXPIRED: "expired",
+  FAILED: "failed",
 } as const;
 
-export type POAPStatus = (typeof POAP_STATUS)[keyof typeof POAP_STATUS];
+export type PurchaseSessionStatus = (typeof PURCHASE_SESSION_STATUS)[keyof typeof PURCHASE_SESSION_STATUS];
 
 export const NAV_LINKS = {
   dashboard: [
