@@ -5,14 +5,8 @@ import { createPlatformMuxedAccount } from '../stellar/muxed';
 import { generateKeypair, extractEd25519Seed } from '../utils/crypto';
 import { buildQRPayload, generateNonce } from '../utils/qr';
 import { NotFoundError, ValidationError, ConflictError } from '../middleware/error-handler';
-import { z } from 'zod';
-
-export const purchaseTicketSchema = z.object({
-  event_id: z.string().uuid(),
-  tier_id: z.string().uuid(),
-  buyer_wallet: z.string().length(56).startsWith('G'),
-  payment_asset: z.enum(['USDC', 'XLM', 'EURC']).default('USDC'),
-});
+import { purchaseTicketSchema } from '@stellar-pass/shared/validation';
+import type { z } from 'zod';
 
 export type PurchaseTicketInput = z.infer<typeof purchaseTicketSchema>;
 

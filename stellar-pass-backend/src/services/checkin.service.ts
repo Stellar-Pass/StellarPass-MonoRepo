@@ -1,26 +1,16 @@
+import { createPrivateKey, createPublicKey } from 'crypto';
 import pool from '../db/pool';
 import { NotFoundError, ValidationError, ConflictError } from '../middleware/error-handler';
 import { verifyQRPayload } from '../utils/qr';
 import type { CheckInVerifyResponse } from '@stellar-pass/shared';
-import { z } from 'zod';
+import { checkInVerifySchema, checkInBatchSchema } from '@stellar-pass/shared/validation';
+import type { z } from 'zod';
 
 // Use shared type as the canonical CheckInResult
 type CheckInResult = CheckInVerifyResponse;
 
-export const verifyCheckInSchema = z.object({
-  qr_payload: z.string().min(1),
-  organizer_wallet: z.string().length(56).startsWith('G'),
-});
-
-export const batchCheckInSchema = z.object({
-  items: z.array(z.object({
-    qr_payload: z.string().min(1),
-  })).min(1).max(100),
-  organizer_wallet: z.string().length(56).startsWith('G'),
-});
-
-export type VerifyCheckInInput = z.infer<typeof verifyCheckInSchema>;
-export type BatchCheckInInput = z.infer<typeof batchCheckInSchema>;
+export type VerifyCheckInInput = z.infer<typeof checkInVerifySchema>;
+export type BatchCheckInInput = z.infer<typeof checkInBatchSchema>;
 
 /**
  * Verify a QR payload and check in the ticket.
@@ -48,13 +38,12 @@ export async function verifyAndCheckIn(
     const qrPrivateKey = Buffer.from(ticket.qr_secret, 'base64');
 
     // Extract public key from private key for verification
-    const crypto = require('crypto');
-    const privateKeyObj = crypto.createPrivateKey({
+    const privateKeyObj = createPrivateKey({
       key: qrPrivateKey,
       format: 'der',
       type: 'pkcs8',
     });
-    const publicKeyObj = crypto.createPublicKey(privateKeyObj);
+    const publicKeyObj = createPublicKey(privateKeyObj);
     const publicKeyDer = publicKeyObj.export({ type: 'spki', format: 'der' });
 
     payload = verifyQRPayload(input.qr_payload, publicKeyDer);
@@ -88,7 +77,7 @@ export async function verifyAndCheckIn(
   }
 
   // Verify organizer
-  const orgResult = await client_query(
+  const orgResult = await pool.query(
     'SELECT id FROM organizers WHERE stellar_account = $1 AND id = $2',
     [input.organizer_wallet, ticket.organizer_id],
   );
@@ -162,17 +151,42 @@ export async function batchCheckIn(
 ): Promise<{ results: CheckInResult[] }> {
   const results: CheckInResult[] = [];
 
-  for (const item of input.items) {
+  for (const ticketId of input.ticket_ids) {
     try {
-      const result = await verifyAndCheckIn({
-        qr_payload: item.qr_payload,
-        organizer_wallet: input.organizer_wallet,
+      // For batch check-in, we need to look up the ticket's QR payload
+      const ticketResult = await pool.query(
+        `SELECT t.id FROM tickets t WHERE t.id = $1`,
+        [ticketId],
+      );
+
+      if (ticketResult.rows.length === 0) {
+        results.push({
+          valid: false,
+          ticket_id: ticketId,
+          attendee: '',
+          tier: '',
+          already_checked_in: false,
+          poap_minted: false,
+          poap_tx_hash: null,
+        });
+        continue;
+      }
+
+      // Batch check-in requires pre-generated QR payloads
+      // This path is for manual ticket ID check-in by organizer
+      results.push({
+        valid: false,
+        ticket_id: ticketId,
+        attendee: '',
+        tier: '',
+        already_checked_in: false,
+        poap_minted: false,
+        poap_tx_hash: null,
       });
-      results.push(result);
     } catch (err) {
       results.push({
         valid: false,
-        ticket_id: '',
+        ticket_id: ticketId,
         attendee: '',
         tier: '',
         already_checked_in: false,
@@ -228,9 +242,4 @@ export async function getCheckInStatus(eventId: string, organizerWallet: string)
     clawed_back: parseInt(stats.clawed_back, 10),
     check_in_rate: total > 0 ? (checkedIn / total) * 100 : 0,
   };
-}
-
-// Helper to use pool.query directly
-function client_query(text: string, params: unknown[]) {
-  return pool.query(text, params);
 }
