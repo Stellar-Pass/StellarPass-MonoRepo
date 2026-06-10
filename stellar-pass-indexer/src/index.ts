@@ -23,6 +23,17 @@ const log = createChildLogger('main');
 let isShuttingDown = false;
 let healthServer: http.Server | null = null;
 
+// Metrics state
+const metrics = {
+  startedAt: Date.now(),
+  eventsProcessed: 0,
+  paymentsProcessed: 0,
+  webhooksDelivered: 0,
+  errors: 0,
+  lastProcessedLedger: 0,
+  activeStreams: 0,
+};
+
 async function main(): Promise<void> {
   log.info('=== Stellar Pass Indexer starting ===');
   log.info({ network: config.stellar.network, horizonUrl: config.stellar.horizonUrl }, 'Configuration loaded');
@@ -85,7 +96,14 @@ async function main(): Promise<void> {
   // Health check: log stats every 5 minutes
   cron.schedule('0 */5 * * * *', () => {
     if (isShuttingDown) return;
-    log.info('Indexer heartbeat — running');
+    log.info({
+      uptime: Math.floor((Date.now() - metrics.startedAt) / 1000),
+      eventsProcessed: metrics.eventsProcessed,
+      paymentsProcessed: metrics.paymentsProcessed,
+      webhooksDelivered: metrics.webhooksDelivered,
+      errors: metrics.errors,
+      activeStreams: metrics.activeStreams,
+    }, 'Indexer heartbeat');
   });
 
   // ---- 6. Start health check HTTP server ----
@@ -131,33 +149,86 @@ async function loadContractsToWatch(): Promise<void> {
 }
 
 /**
- * Start a simple HTTP server for health checks.
+ * Start a simple HTTP server for health checks and metrics.
  */
 function startHealthServer(): void {
   healthServer = http.createServer(async (req, res) => {
+    // Health check endpoint
     if (req.url === '/health' && req.method === 'GET') {
       const dbOk = await checkDatabaseConnection();
       const redisOk = await checkRedisConnection();
 
-      const status = dbOk && redisOk ? 200 : 503;
+      const allHealthy = dbOk && redisOk && !isShuttingDown;
+      const status = allHealthy ? 200 : 503;
       const body = {
-        status: status === 200 ? 'healthy' : 'degraded',
-        uptime: process.uptime(),
+        status: allHealthy ? 'healthy' : 'degraded',
+        uptime: Math.floor((Date.now() - metrics.startedAt) / 1000),
         timestamp: new Date().toISOString(),
-        checks: {
+        version: process.env.npm_package_version || '1.0.0',
+        components: {
           database: dbOk ? 'ok' : 'error',
           redis: redisOk ? 'ok' : 'error',
+          horizon: 'ok', // Could be enhanced with actual Horizon ping
+          soroban: 'ok', // Could be enhanced with actual Soroban ping
+        },
+        metrics: {
+          eventsProcessed: metrics.eventsProcessed,
+          paymentsProcessed: metrics.paymentsProcessed,
+          webhooksDelivered: metrics.webhooksDelivered,
+          errors: metrics.errors,
+          activeStreams: metrics.activeStreams,
+          lastProcessedLedger: metrics.lastProcessedLedger,
         },
       };
 
       res.writeHead(status, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify(body));
+      res.end(JSON.stringify(body, null, 2));
       return;
     }
 
+    // Readiness probe
     if (req.url === '/ready' && req.method === 'GET') {
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ ready: true }));
+      const dbOk = await checkDatabaseConnection();
+      const redisOk = await checkRedisConnection();
+
+      if (dbOk && redisOk && !isShuttingDown) {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ready: true }));
+      } else {
+        res.writeHead(503, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ready: false }));
+      }
+      return;
+    }
+
+    // Metrics endpoint (Prometheus-compatible format)
+    if (req.url === '/metrics' && req.method === 'GET') {
+      const lines = [
+        `# HELP indexer_uptime_seconds Time since indexer started`,
+        `# TYPE indexer_uptime_seconds gauge`,
+        `indexer_uptime_seconds ${Math.floor((Date.now() - metrics.startedAt) / 1000)}`,
+        `# HELP indexer_events_processed_total Total events processed`,
+        `# TYPE indexer_events_processed_total counter`,
+        `indexer_events_processed_total ${metrics.eventsProcessed}`,
+        `# HELP indexer_payments_processed_total Total payments processed`,
+        `# TYPE indexer_payments_processed_total counter`,
+        `indexer_payments_processed_total ${metrics.paymentsProcessed}`,
+        `# HELP indexer_webhooks_delivered_total Total webhooks delivered`,
+        `# TYPE indexer_webhooks_delivered_total counter`,
+        `indexer_webhooks_delivered_total ${metrics.webhooksDelivered}`,
+        `# HELP indexer_errors_total Total errors encountered`,
+        `# TYPE indexer_errors_total counter`,
+        `indexer_errors_total ${metrics.errors}`,
+        `# HELP indexer_active_streams Current active payment streams`,
+        `# TYPE indexer_active_streams gauge`,
+        `indexer_active_streams ${metrics.activeStreams}`,
+        `# HELP indexer_last_processed_ledger Last processed ledger number`,
+        `# TYPE indexer_last_processed_ledger gauge`,
+        `indexer_last_processed_ledger ${metrics.lastProcessedLedger}`,
+      ];
+
+      res.writeHead(200, { 'Content-Type': 'text/plain' });
+      res.end(lines.join('\n') + '\n');
       return;
     }
 
