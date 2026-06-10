@@ -1,3 +1,11 @@
+//! # Stellar Pass POAP Badge Contract
+//!
+//! Soulbound (non-transferable) proof-of-attendance badges on Stellar.
+//! Once minted to an attendee's address, the badge stays there forever.
+//!
+//! ## Design
+//! No `transfer` or `approve` function exists — badges are soulbound by design.
+
 #![no_std]
 
 use soroban_sdk::{
@@ -8,14 +16,21 @@ use soroban_sdk::{
 // Data types
 // ---------------------------------------------------------------------------
 
+/// On-chain metadata for a POAP badge.
 #[derive(Clone, Debug, Eq, PartialEq)]
 #[contracttype]
 pub struct POAPMetadata {
+    /// Unique identifier for the event.
     pub event_id: Bytes,
+    /// Human-readable event name.
     pub event_name: String,
+    /// Event date as Unix timestamp.
     pub event_date: u64,
+    /// Address of the attendee.
     pub attendee: Address,
+    /// URL to the badge display image.
     pub badge_image_url: String,
+    /// Timestamp when minted.
     pub minted_at: u64,
 }
 
@@ -23,6 +38,7 @@ pub struct POAPMetadata {
 // Storage keys
 // ---------------------------------------------------------------------------
 
+/// Internal storage key enum.
 #[derive(Clone)]
 #[contracttype]
 pub enum DataKey {
@@ -86,12 +102,16 @@ fn add_badge(env: &Env, owner: &Address, badge_id: u128) {
 // Contract
 // ---------------------------------------------------------------------------
 
+/// Stellar Pass POAP badge contract. Mints soulbound attendance badges.
 #[contract]
 pub struct StellarPassPoap;
 
 #[contractimpl]
 impl StellarPassPoap {
-    /// Initialize the POAP contract with an admin and event ID.
+    /// Initialize the POAP contract for a specific event.
+    ///
+    /// # Panics
+    /// Panics if already initialized.
     pub fn initialize(env: Env, admin: Address, event_id: Bytes) {
         assert!(
             !env.storage().instance().has(&DataKey::Admin),
@@ -102,8 +122,13 @@ impl StellarPassPoap {
         env.storage().instance().set(&DataKey::MintedCount, &0u128);
     }
 
-    /// Mint a POAP badge to `to`. Soulbound — no transfer or approve functions.
-    /// Returns the badge ID.
+    /// Mint a soulbound POAP badge to an attendee.
+    ///
+    /// The badge cannot be transferred. Only the admin can mint.
+    ///
+    /// # Panics
+    /// * If called by non-admin
+    /// * If badge_id already exists
     pub fn mint(env: Env, to: Address, badge_id: u128, metadata: POAPMetadata) -> u128 {
         require_admin(&env);
 
