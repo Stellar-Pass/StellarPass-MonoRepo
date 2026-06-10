@@ -48,6 +48,7 @@ interface ErrorResponse {
     code: string;
     message: string;
     details?: unknown;
+    requestId?: string;
   };
 }
 
@@ -62,6 +63,7 @@ export function registerErrorHandler(fastify: FastifyInstance): void {
           code: error.code || 'INTERNAL_ERROR',
           message: error.message,
           ...(error.details !== undefined && { details: error.details }),
+          requestId: request.requestId,
         },
       };
       return reply.status(error.statusCode).send(response);
@@ -74,6 +76,7 @@ export function registerErrorHandler(fastify: FastifyInstance): void {
           code: 'VALIDATION_ERROR',
           message: 'Request validation failed',
           details: error.validation,
+          requestId: request.requestId,
         },
       };
       return reply.status(400).send(response);
@@ -87,6 +90,7 @@ export function registerErrorHandler(fastify: FastifyInstance): void {
         message: process.env.NODE_ENV === 'production'
           ? 'Internal server error'
           : error.message,
+        requestId: request.requestId,
       },
     };
     return reply.status(500).send(response);

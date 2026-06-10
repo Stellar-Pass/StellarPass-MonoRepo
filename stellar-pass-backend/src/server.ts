@@ -6,6 +6,7 @@ import jwt from '@fastify/jwt';
 import { testConnection, shutdown as shutdownPool } from './db/pool';
 import { connectRedis, shutdownRedis } from './db/redis';
 import { registerErrorHandler } from './middleware/error-handler';
+import { requestIdPlugin } from './middleware/request-id';
 
 // Route plugins
 import authRoutes from './routes/auth';
@@ -34,10 +35,12 @@ async function buildServer(): Promise<FastifyInstance> {
 
   // -- Plugins --
 
+  await fastify.register(requestIdPlugin);
+
   await fastify.register(cors, {
     origin: process.env.CORS_ORIGIN || '*',
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Request-Id'],
     credentials: true,
   });
 
@@ -49,6 +52,25 @@ async function buildServer(): Promise<FastifyInstance> {
   await fastify.register(jwt, {
     secret: process.env.JWT_SECRET || 'change-me',
     sign: { expiresIn: '24h' },
+  });
+
+  // -- Request logging with request ID --
+  fastify.addHook('onRequest', async (request) => {
+    request.log.info({
+      requestId: request.requestId,
+      method: request.method,
+      url: request.url,
+    }, 'incoming request');
+  });
+
+  fastify.addHook('onResponse', async (request, reply) => {
+    request.log.info({
+      requestId: request.requestId,
+      method: request.method,
+      url: request.url,
+      statusCode: reply.statusCode,
+      responseTime: Math.round(reply.elapsedTime),
+    }, 'request completed');
   });
 
   // -- Error handling --
