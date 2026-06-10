@@ -1,3 +1,16 @@
+//! # Stellar Pass Ticket Contract
+//!
+//! A Soroban smart contract implementing SEP-0048 compatible NFT tickets
+//! for the Stellar Pass event ticketing platform.
+//!
+//! ## Features
+//! - Mint unique ticket NFTs with rich metadata
+//! - Transfer tickets with built-in transferability controls
+//! - Freeze/unfreeze tickets to prevent transfers (anti-scalping)
+//! - Clawback tickets to the issuer (refunds, fraud reversal)
+//! - Burn tickets (permanent destruction)
+//! - Mark tickets as used (check-in)
+
 #![no_std]
 
 use soroban_sdk::{
@@ -8,32 +21,49 @@ use soroban_sdk::{
 // Data types
 // ---------------------------------------------------------------------------
 
+/// Status of a ticket in its lifecycle.
 #[derive(Clone, Debug, Eq, PartialEq)]
 #[contracttype]
 pub enum TicketStatus {
+    /// Ticket is active and can be used for entry or transferred.
     Active,
+    /// Ticket has been used for check-in. Cannot be transferred.
     Used,
+    /// Ticket is frozen by the organizer. Cannot be transferred.
     Frozen,
+    /// Ticket has been reclaimed by the issuer (refund/fraud).
     ClawedBack,
 }
 
+/// On-chain metadata for a ticket NFT.
 #[derive(Clone, Debug, Eq, PartialEq)]
 #[contracttype]
 pub struct TicketMetadata {
+    /// Unique identifier for the event.
     pub event_id: Bytes,
+    /// Ticket tier name (e.g., "General Admission", "VIP").
     pub tier: String,
+    /// Event date as Unix timestamp (seconds).
     pub event_date: u64,
+    /// Venue name or address.
     pub venue: String,
+    /// URL to the ticket's display image.
     pub image_url: String,
+    /// Whether this ticket can be transferred to another address.
     pub is_transferable: bool,
-    pub resale_price_cap: i128, // 0 = no cap
+    /// Maximum resale price in stroops. 0 means no cap.
+    pub resale_price_cap: i128,
+    /// Current status of the ticket.
     pub status: TicketStatus,
 }
 
+/// Delegation approval for ticket transfers.
 #[derive(Clone, Debug, Eq, PartialEq)]
 #[contracttype]
 pub struct Approval {
+    /// The address approved to transfer the ticket.
     pub approved: Address,
+    /// Ledger number until which this approval is valid.
     pub live_until_ledger: u32,
 }
 
@@ -41,16 +71,25 @@ pub struct Approval {
 // Storage keys
 // ---------------------------------------------------------------------------
 
+/// Internal storage key enum for the contract.
 #[derive(Clone)]
 #[contracttype]
 pub enum DataKey {
+    /// The admin address (event organizer).
     Admin,
+    /// Ticket metadata indexed by token ID.
     Ticket(u128),
+    /// Owner address indexed by token ID.
     Owner(u128),
+    /// Token balance indexed by owner address.
     Balance(Address),
+    /// Delegation approval indexed by token ID.
     Approval(u128),
+    /// Total number of tickets minted.
     MintedCount,
+    /// Collection name.
     Name,
+    /// Collection symbol.
     Symbol,
 }
 
@@ -58,6 +97,7 @@ pub enum DataKey {
 // Helpers
 // ---------------------------------------------------------------------------
 
+/// Retrieve the admin address from instance storage. Panics if not initialized.
 fn get_admin(env: &Env) -> Address {
     env.storage()
         .instance()
@@ -65,6 +105,7 @@ fn get_admin(env: &Env) -> Address {
         .expect("contract not initialized")
 }
 
+/// Require that the caller is the admin. Panics otherwise.
 fn require_admin(env: &Env) {
     let admin = get_admin(env);
     admin.require_auth();
@@ -104,12 +145,19 @@ fn decr_balance(env: &Env, owner: &Address) -> u128 {
 // Contract
 // ---------------------------------------------------------------------------
 
+/// Stellar Pass Ticket NFT contract.
+///
+/// Implements SEP-0048 compatible NFT functionality with ticketing extensions:
+/// freeze, clawback, burn, and usage tracking.
 #[contract]
 pub struct StellarPassTicket;
 
 #[contractimpl]
 impl StellarPassTicket {
     /// Initialize the contract with an admin address, name, and symbol.
+    ///
+    /// # Panics
+    /// Panics if the contract is already initialized.
     pub fn initialize(env: Env, admin: Address, name: String, symbol: String) {
         assert!(
             !env.storage().instance().has(&DataKey::Admin),
@@ -121,8 +169,14 @@ impl StellarPassTicket {
         env.storage().instance().set(&DataKey::MintedCount, &0u128);
     }
 
-    /// Mint a new ticket NFT to `to` with the given `token_id` and `metadata`.
-    /// Only the admin may call this.
+    /// Mint a new ticket NFT.
+    ///
+    /// Creates a ticket with the given metadata and assigns it to `to`.
+    /// Only the admin can mint tickets.
+    ///
+    /// # Panics
+    /// * If called by non-admin
+    /// * If a ticket with the given token_id already exists
     pub fn mint(env: Env, to: Address, token_id: u128, metadata: TicketMetadata) -> u128 {
         require_admin(&env);
 
@@ -153,8 +207,15 @@ impl StellarPassTicket {
         token_id
     }
 
-    /// Transfer ticket `token_id` from `from` to `to`.
-    /// Requires `from` to authorize. Ticket must be transferable and not frozen.
+    /// Transfer a ticket from one address to another.
+    ///
+    /// The ticket must be transferable and in Active status.
+    /// Any existing approval is cleared on transfer.
+    ///
+    /// # Panics
+    /// * If `from` is not the ticket owner
+    /// * If the ticket is not transferable
+    /// * If the ticket is frozen or not active
     pub fn transfer(env: Env, from: Address, to: Address, token_id: u128) {
         from.require_auth();
 
@@ -239,7 +300,13 @@ impl StellarPassTicket {
 
     // --- Ticketing Extensions ---
 
-    /// Freeze a ticket (admin only). Prevents transfers.
+    /// Freeze a ticket to prevent transfers.
+    ///
+    /// Use cases: flagged scalper, stolen ticket, chargeback pending.
+    ///
+    /// # Panics
+    /// * If called by non-admin
+    /// * If ticket is already clawed back
     pub fn freeze(env: Env, ticket_id: u128) {
         require_admin(&env);
 
@@ -273,7 +340,14 @@ impl StellarPassTicket {
             .set(&DataKey::Ticket(ticket_id), &metadata);
     }
 
-    /// Claw back a ticket to the issuer/admin (admin only).
+    /// Clawback a ticket to the issuer/admin.
+    ///
+    /// Reclaims the ticket from the current holder. Use cases:
+    /// refund processing, fraud reversal, ToS violation.
+    ///
+    /// # Panics
+    /// * If called by non-admin
+    /// * If ticket is already clawed back
     pub fn clawback(env: Env, ticket_id: u128) {
         require_admin(&env);
 
@@ -313,7 +387,13 @@ impl StellarPassTicket {
             .remove(&DataKey::Approval(ticket_id));
     }
 
-    /// Burn (destroy) a ticket (admin only).
+    /// Burn (permanently destroy) a ticket.
+    ///
+    /// This action is irreversible. Only the admin can burn tickets.
+    ///
+    /// # Panics
+    /// * If called by non-admin
+    /// * If ticket does not exist
     pub fn burn(env: Env, ticket_id: u128) {
         require_admin(&env);
 
@@ -336,7 +416,14 @@ impl StellarPassTicket {
             .remove(&DataKey::Approval(ticket_id));
     }
 
-    /// Mark a ticket as used (admin only). Non-destructive check-in.
+    /// Mark a ticket as used (check-in).
+    ///
+    /// Non-destructive operation — ticket still exists but cannot
+    /// be transferred or used again.
+    ///
+    /// # Panics
+    /// * If called by non-admin
+    /// * If ticket is not in Active status
     pub fn mark_used(env: Env, ticket_id: u128) {
         require_admin(&env);
 
