@@ -19,6 +19,10 @@ RUN npm prune --production
 # ---- Stage 2: Runtime ----
 FROM node:20-alpine AS runtime
 
+LABEL org.opencontainers.image.title="Stellar Pass Indexer"
+LABEL org.opencontainers.image.description="Stellar blockchain event indexer"
+LABEL org.opencontainers.image.source="https://github.com/Stellar-Pass/StellarPass-MonoRepo"
+
 # Security: run as non-root
 RUN addgroup -S indexer && adduser -S indexer -G indexer
 
