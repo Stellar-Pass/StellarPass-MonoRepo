@@ -1,3 +1,16 @@
+//! # Stellar Pass Ticket Contract
+//!
+//! A Soroban smart contract implementing SEP-0048 compatible NFT tickets
+//! for the Stellar Pass event ticketing platform.
+//!
+//! ## Features
+//! - Mint unique ticket NFTs with rich metadata
+//! - Transfer tickets with built-in transferability controls
+//! - Freeze/unfreeze tickets to prevent transfers (anti-scalping)
+//! - Clawback tickets to the issuer (refunds, fraud reversal)
+//! - Burn tickets (permanent destruction)
+//! - Mark tickets as used (check-in)
+
 #![no_std]
 
 use soroban_sdk::{
@@ -8,32 +21,49 @@ use soroban_sdk::{
 // Data types
 // ---------------------------------------------------------------------------
 
+/// Status of a ticket in its lifecycle.
 #[derive(Clone, Debug, Eq, PartialEq)]
 #[contracttype]
 pub enum TicketStatus {
+    /// Ticket is active and can be used for entry or transferred.
     Active,
+    /// Ticket has been used for check-in. Cannot be transferred.
     Used,
+    /// Ticket is frozen by the organizer. Cannot be transferred.
     Frozen,
+    /// Ticket has been reclaimed by the issuer (refund/fraud).
     ClawedBack,
 }
 
+/// On-chain metadata for a ticket NFT.
 #[derive(Clone, Debug, Eq, PartialEq)]
 #[contracttype]
 pub struct TicketMetadata {
+    /// Unique identifier for the event.
     pub event_id: Bytes,
+    /// Ticket tier name (e.g., "General Admission", "VIP").
     pub tier: String,
+    /// Event date as Unix timestamp (seconds).
     pub event_date: u64,
+    /// Venue name or address.
     pub venue: String,
+    /// URL to the ticket's display image.
     pub image_url: String,
+    /// Whether this ticket can be transferred to another address.
     pub is_transferable: bool,
-    pub resale_price_cap: i128, // 0 = no cap
+    /// Maximum resale price in stroops. 0 means no cap.
+    pub resale_price_cap: i128,
+    /// Current status of the ticket.
     pub status: TicketStatus,
 }
 
+/// Delegation approval for ticket transfers.
 #[derive(Clone, Debug, Eq, PartialEq)]
 #[contracttype]
 pub struct Approval {
+    /// The address approved to transfer the ticket.
     pub approved: Address,
+    /// Ledger number until which this approval is valid.
     pub live_until_ledger: u32,
 }
 
@@ -41,16 +71,25 @@ pub struct Approval {
 // Storage keys
 // ---------------------------------------------------------------------------
 
+/// Internal storage key enum for the contract.
 #[derive(Clone)]
 #[contracttype]
 pub enum DataKey {
+    /// The admin address (event organizer).
     Admin,
+    /// Ticket metadata indexed by token ID.
     Ticket(u128),
+    /// Owner address indexed by token ID.
     Owner(u128),
+    /// Token balance indexed by owner address.
     Balance(Address),
+    /// Delegation approval indexed by token ID.
     Approval(u128),
+    /// Total number of tickets minted.
     MintedCount,
+    /// Collection name.
     Name,
+    /// Collection symbol.
     Symbol,
 }
 
