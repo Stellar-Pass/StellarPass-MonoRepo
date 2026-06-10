@@ -54,6 +54,14 @@ export const updateEventSchema = z.object({
   status: z.enum(['draft', 'on_sale', 'sold_out', 'cancelled', 'past']).optional(),
   name: z.string().min(1).max(200).optional(),
   description: z.string().max(5000).optional(),
+  image_url: z.string().url().optional(),
+});
+
+// --- Organizer ---
+export const updateOrganizerSchema = z.object({
+  name: z.string().min(1).max(100).optional(),
+  email: z.string().email().optional(),
+  avatar_url: z.string().url().optional(),
 });
 
 // --- Tickets ---
@@ -102,4 +110,16 @@ export const paginationSchema = z.object({
 export const eventQuerySchema = paginationSchema.extend({
   status: z.enum(['draft', 'on_sale', 'sold_out', 'cancelled', 'past']).optional(),
   organizer_id: uuid.optional(),
+});
+
+export const ticketQuerySchema = paginationSchema.extend({
+  event_id: uuid.optional(),
+  status: z.enum(['active', 'used', 'frozen', 'clawed_back']).optional(),
+  owner_wallet: stellarAddress.optional(),
+});
+
+export const analyticsQuerySchema = z.object({
+  event_id: uuid,
+  date_from: isoDate.optional(),
+  date_to: isoDate.optional(),
 });
