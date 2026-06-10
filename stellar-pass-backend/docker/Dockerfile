@@ -14,6 +14,10 @@ RUN npm run build
 # ---- Production stage ----
 FROM node:20-alpine AS production
 
+LABEL org.opencontainers.image.title="Stellar Pass Backend"
+LABEL org.opencontainers.image.description="Stellar Pass API server"
+LABEL org.opencontainers.image.source="https://github.com/Stellar-Pass/StellarPass-MonoRepo"
+
 WORKDIR /app
 
 RUN addgroup -g 1001 -S nodejs && \
@@ -30,6 +34,8 @@ COPY src/db/schema.sql ./docker/schema.sql
 RUN chown -R stellarpass:nodejs /app
 
 USER stellarpass
+
+ENV NODE_ENV=production
 
 EXPOSE 3001
 
