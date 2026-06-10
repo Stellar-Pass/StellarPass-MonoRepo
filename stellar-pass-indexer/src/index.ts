@@ -149,33 +149,53 @@ async function loadContractsToWatch(): Promise<void> {
 }
 
 /**
- * Start a simple HTTP server for health checks.
+ * Start a simple HTTP server for health checks and metrics.
  */
 function startHealthServer(): void {
   healthServer = http.createServer(async (req, res) => {
+    // Health check endpoint
     if (req.url === '/health' && req.method === 'GET') {
       const dbOk = await checkDatabaseConnection();
       const redisOk = await checkRedisConnection();
 
-      const status = dbOk && redisOk ? 200 : 503;
+      const allHealthy = dbOk && redisOk && !isShuttingDown;
+      const status = allHealthy ? 200 : 503;
       const body = {
-        status: status === 200 ? 'healthy' : 'degraded',
-        uptime: process.uptime(),
+        status: allHealthy ? 'healthy' : 'degraded',
+        uptime: Math.floor((Date.now() - metrics.startedAt) / 1000),
         timestamp: new Date().toISOString(),
-        checks: {
+        version: process.env.npm_package_version || '1.0.0',
+        components: {
           database: dbOk ? 'ok' : 'error',
           redis: redisOk ? 'ok' : 'error',
+        },
+        metrics: {
+          eventsProcessed: metrics.eventsProcessed,
+          paymentsProcessed: metrics.paymentsProcessed,
+          webhooksDelivered: metrics.webhooksDelivered,
+          errors: metrics.errors,
+          activeStreams: metrics.activeStreams,
+          lastProcessedLedger: metrics.lastProcessedLedger,
         },
       };
 
       res.writeHead(status, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify(body));
+      res.end(JSON.stringify(body, null, 2));
       return;
     }
 
+    // Readiness probe
     if (req.url === '/ready' && req.method === 'GET') {
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ ready: true }));
+      const dbOk = await checkDatabaseConnection();
+      const redisOk = await checkRedisConnection();
+
+      if (dbOk && redisOk && !isShuttingDown) {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ready: true }));
+      } else {
+        res.writeHead(503, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ready: false }));
+      }
       return;
     }
 
