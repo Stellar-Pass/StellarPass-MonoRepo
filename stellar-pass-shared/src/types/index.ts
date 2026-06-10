@@ -132,6 +132,67 @@ export interface WebhookDelivery {
   success: boolean | null;
 }
 
+// --- Update Types ---
+
+export interface UpdateEventRequest {
+  name?: string;
+  description?: string;
+  status?: EventStatus;
+  image_url?: string;
+}
+
+export interface UpdateOrganizerRequest {
+  name?: string;
+  email?: string;
+  avatar_url?: string;
+}
+
+export interface OrganizerProfile extends Organizer {
+  total_events: number;
+  total_tickets_sold: number;
+  total_revenue: Record<Currency, number>;
+}
+
+export interface PayoutInfo {
+  organizer_id: string;
+  stellar_account: string;
+  total_revenue: Record<Currency, number>;
+  pending_payouts: number;
+  last_payout_at: string | null;
+}
+
+export interface CheckInStatus {
+  event_id: string;
+  event_name: string;
+  total_tickets: number;
+  pending: number;
+  checked_in: number;
+  frozen: number;
+  clawed_back: number;
+  check_in_rate: number;
+}
+
+export interface PaginatedResponse<T> {
+  data: T[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    pages: number;
+  };
+}
+
+export interface HealthCheckResponse {
+  status: 'ok' | 'degraded' | 'error';
+  timestamp: string;
+  version: string;
+  uptime: number;
+  checks: {
+    database: 'ok' | 'error';
+    redis: 'ok' | 'error';
+  };
+}
+
 // --- API Request/Response Types ---
 
 export interface CreateEventRequest {
@@ -267,6 +328,31 @@ export interface QRPayload {
   issued_at: number; // Unix timestamp
   expires_at: number; // Unix timestamp (15 min TTL)
   nonce: string; // random UUID
+}
+
+// --- Query Types ---
+
+export interface PaginationParams {
+  page?: number;
+  limit?: number;
+}
+
+export interface EventQueryParams extends PaginationParams {
+  status?: EventStatus;
+  organizer_id?: string;
+  search?: string;
+}
+
+export interface TicketQueryParams extends PaginationParams {
+  event_id?: string;
+  status?: TicketStatus;
+  owner_wallet?: string;
+}
+
+export interface AnalyticsQueryParams {
+  event_id: string;
+  date_from?: string;
+  date_to?: string;
 }
 
 // --- Webhook HTTP payload (sent to organizer's URL) ---

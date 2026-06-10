@@ -2,6 +2,10 @@
 // Stellar Pass — Constants
 // ============================================================
 
+// --- API ---
+export const API_VERSION = 'v1';
+export const API_PREFIX = `/api/${API_VERSION}`;
+
 // --- Stellar Network ---
 export const STELLAR_NETWORK = {
   TESTNET: 'testnet',
@@ -30,6 +34,14 @@ export const USDC_ISSUER = {
 } as const;
 
 export const USDC_ASSET_CODE = 'USDC';
+
+// --- Stellar EURC ---
+export const EURC_ISSUER = {
+  testnet: 'GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5',
+  mainnet: 'GDHU6RQKMI4GCPMNOVYJVAMJTDIBU6W5HVKVH5GNPCGY5YQ4UGV3L66S',
+} as const;
+
+export const EURC_ASSET_CODE = 'EURC';
 
 // --- NFT Asset Code Prefix ---
 export const NFT_ASSET_PREFIX = 'SPAS'; // Stellar Pass asset prefix
@@ -82,6 +94,12 @@ export const EVENT_STATUSES = ['draft', 'on_sale', 'sold_out', 'cancelled', 'pas
 
 // --- Supported Currencies ---
 export const SUPPORTED_CURRENCIES = ['USDC', 'XLM', 'EURC'] as const;
+
+// --- Purchase Session Status ---
+export const PURCHASE_SESSION_STATUSES = ['pending', 'confirmed', 'expired', 'failed'] as const;
+
+// --- Webhook Delivery Status ---
+export const WEBHOOK_DELIVERY_STATUSES = ['pending', 'delivered', 'failed'] as const;
 
 // --- Royalty ---
 export const DEFAULT_ROYALTY_BPS = 500; // 5%
