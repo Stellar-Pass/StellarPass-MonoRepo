@@ -13,8 +13,8 @@
 
 | Name | Hex | Usage |
 |---|---|---|
-| Stellar Purple | `#7B3FE4` | Gradient start, primary accent |
-| Stellar Blue | `#14B6E7` | Gradient end, secondary accent |
+| Stellar Green | `#00D4AA` | Gradient start, primary accent |
+| Stellar Teal | `#00B4D8` | Gradient end, secondary accent |
 | Dark | `#0F1629` | Dark background wordmark |
 | White | `#FFFFFF` | Light background wordmark, icon overlays |
 
@@ -24,7 +24,7 @@ The logo combines two elements:
 
 - **Ticket shape** — a rounded rectangle with notch cutouts and a dashed perforation line, representing event ticketing
 - **Four-pointed star** — the Stellar network's signature motif, centered in the ticket body
-- **Gradient** — purple-to-blue gradient across both the ticket and the Stellar identity
+- **Gradient** — green-to-teal gradient across both the ticket and the Stellar identity
 
 The scan lines at the bottom of the detailed icon add a digital/NFT feel, while corner accent dots reinforce the ticket stub aesthetic.
 
