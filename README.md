@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="brand/logo-mark.svg" width="120" height="120" alt="Stellar Pass Logo">
+</p>
+
 # Stellar Pass
 
 **NFT event ticketing and proof-of-attendance on Stellar — the first ticketing protocol purpose-built for Stellar's native capabilities.**

@@ -1,0 +1,83 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 320" fill="none">
+  <defs>
+    <linearGradient id="icon-grad" x1="0" y1="0" x2="240" y2="240" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#00D4AA"/>
+      <stop offset="100%" stop-color="#00B4D8"/>
+    </linearGradient>
+    <linearGradient id="star-fill" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="100%" stop-color="#E0D4FF"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Icon mark (scaled ticket + star) -->
+  <g transform="translate(40, 40) scale(0.75)">
+    <!-- Ticket body -->
+    <path d="
+      M 80 64
+      C 80 46.3 94.3 32 112 32
+      L 400 32
+      C 417.7 32 432 46.3 432 64
+      L 432 200
+      C 418.2 200 407 211.2 407 225
+      C 407 238.8 418.2 250 432 250
+      L 432 448
+      C 432 465.7 417.7 480 400 480
+      L 112 480
+      C 94.3 480 80 465.7 80 448
+      L 80 250
+      C 93.8 250 105 238.8 105 225
+      C 105 211.2 93.8 200 80 200
+      Z
+    " fill="url(#icon-grad)"/>
+
+    <!-- Dashed perforation -->
+    <line x1="130" y1="225" x2="382" y2="225"
+          stroke="white" stroke-opacity="0.3" stroke-width="2"
+          stroke-dasharray="8 6"/>
+
+    <!-- Four-pointed star -->
+    <path d="
+      M 256 100
+      L 282 190
+      L 372 164
+      L 302 225
+      L 372 286
+      L 282 260
+      L 256 350
+      L 230 260
+      L 140 286
+      L 210 225
+      L 140 164
+      L 230 190
+      Z
+    " fill="url(#star-fill)" opacity="0.95"/>
+
+    <!-- Inner circle -->
+    <circle cx="256" cy="225" r="28" fill="url(#icon-grad)" opacity="0.7"/>
+
+    <!-- Scan lines -->
+    <line x1="160" y1="370" x2="352" y2="370" stroke="white" stroke-opacity="0.25" stroke-width="3" stroke-linecap="round"/>
+    <line x1="180" y1="395" x2="332" y2="395" stroke="white" stroke-opacity="0.20" stroke-width="3" stroke-linecap="round"/>
+    <line x1="200" y1="420" x2="312" y2="420" stroke="white" stroke-opacity="0.15" stroke-width="3" stroke-linecap="round"/>
+
+    <!-- Corner dots -->
+    <circle cx="130" cy="80" r="6" fill="white" opacity="0.4"/>
+    <circle cx="382" cy="80" r="6" fill="white" opacity="0.4"/>
+    <circle cx="130" cy="432" r="6" fill="white" opacity="0.4"/>
+    <circle cx="382" cy="432" r="6" fill="white" opacity="0.4"/>
+  </g>
+
+  <!-- Wordmark -->
+  <g transform="translate(420, 80)">
+    <text font-family="'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif"
+          font-weight="800" font-size="108" fill="#FFFFFF" letter-spacing="-2">
+      Stellar
+    </text>
+    <text font-family="'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif"
+          font-weight="800" font-size="108" fill="url(#icon-grad)" letter-spacing="-2"
+          x="0" dy="115">
+      Pass
+    </text>
+  </g>
+</svg>
